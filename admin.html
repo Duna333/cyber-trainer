@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Панель администратора — Кибер-карточки Югры</title>
+<link rel="stylesheet" href="styles/main.css">
+<style>
+.admin-header{background:linear-gradient(90deg,#1e5aa8,#2e6fc4);color:#fff;padding:14px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+.admin-header h1{font-size:1.1rem;flex:1;min-width:200px}
+.admin-header .back-link{color:#fff;text-decoration:underline;font-size:.9rem;cursor:pointer}
+.admin-header .back-link:hover{opacity:.8}
+.admin-container{max-width:900px;margin:0 auto;padding:24px 14px 60px}
+.admin-toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+.admin-count{font-size:.9rem;color:#4b5563;margin-bottom:12px}
+.admin-table{width:100%;border-collapse:collapse;margin:16px 0}
+.admin-table th,.admin-table td{border:1px solid var(--border);padding:10px 12px;text-align:left}
+.admin-table th{background:#f0f4f8;font-weight:bold}
+.admin-table .actions{display:flex;gap:6px;flex-wrap:wrap}
+.admin-table .actions button{font-size:.8rem;padding:4px 10px}
+
+/* Модальное окно */
+.modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:100;justify-content:center;align-items:flex-start;padding-top:40px}
+.modal-overlay.active{display:flex}
+.modal{background:var(--card);border-radius:16px;padding:24px;width:90%;max-width:700px;max-height:85vh;overflow-y:auto;box-shadow:0 8px 30px rgba(0,0,0,.2)}
+.modal h2{color:var(--accent);margin-bottom:16px}
+.form-section{margin-bottom:16px}
+.form-section h3{font-size:.95rem;color:#4b5563;margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:4px}
+.form-row{display:flex;gap:12px;margin-bottom:10px}
+.form-row .field{flex:1;margin:0}
+.form-row .field label{display:block;font-size:.85rem;font-weight:bold;margin-bottom:4px}
+.form-row .field input,.form-row .field select,.form-row .field textarea{width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;font-family:inherit}
+.form-row .field textarea{min-height:60px;resize:vertical}
+
+/* Динамические списки */
+.dynamic-list{margin:8px 0}
+.dynamic-item{display:flex;gap:8px;align-items:center;margin-bottom:6px;padding:8px;background:#f8fafc;border:1px solid var(--border);border-radius:8px}
+.dynamic-item input,.dynamic-item select{flex:1;padding:6px 8px;font-size:.9rem;border:1px solid var(--border);border-radius:6px}
+.dynamic-item button{font-size:.8rem;padding:4px 8px;white-space:nowrap}
+.add-item-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:.85rem;margin:6px 0}
+.add-item-btn:hover{background:#174680}
+.form-actions{display:flex;gap:10px;margin-top:20px}
+
+/* Типы секций */
+.type-section{display:none}
+.type-section.active{display:block}
+
+/* Фолбэк для кнопки */
+.btn-sm{display:inline-block;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:.9rem;cursor:pointer;font-family:inherit}
+.btn-sm:hover{background:#174680}
+.btn-sm.secondary{background:#fff;color:var(--accent);border:2px solid var(--accent)}
+.btn-sm.danger{background:var(--err)}
+.btn-sm.green{background:var(--ok)}
+
+/* Экран логина */
+.login-screen{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#1e5aa8,#2e6fc4);z-index:1000;justify-content:center;align-items:center}
+.login-screen.active{display:flex}
+.login-box{background:#fff;border-radius:20px;padding:40px;width:90%;max-width:420px;box-shadow:0 12px 40px rgba(0,0,0,.25);text-align:center}
+.login-box h2{color:var(--accent);margin-bottom:24px;font-size:1.4rem}
+.login-field{text-align:left;margin-bottom:16px}
+.login-field label{display:block;font-weight:bold;margin-bottom:6px;font-size:.9rem}
+.login-field input{width:100%;padding:12px;border:2px solid var(--border);border-radius:10px;font-size:1rem;font-family:inherit}
+.login-field input:focus{outline:none;border-color:var(--accent)}
+.login-error{color:var(--err);font-size:.9rem;margin:12px 0;display:none;padding:10px;background:#fdecea;border-radius:8px}
+.login-error.show{display:block}
+.login-screen .btn-sm{width:100%;margin-top:10px;font-size:1rem;padding:12px}
+
+/* Секции админки */
+.admin-section{margin-top:30px;padding-top:24px;border-top:2px solid var(--border)}
+</style>
+</head>
+<body>
+
+<!-- Экран логина -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-box">
+    <h2>🛡️ Вход в панель администратора</h2>
+    <form id="loginForm">
+      <div class="login-field">
+        <label for="loginUsername">Имя пользователя</label>
+        <input type="text" id="loginUsername" placeholder="Введите логин" required autocomplete="username">
+      </div>
+      <div class="login-field">
+        <label for="loginPassword">Пароль</label>
+        <input type="password" id="loginPassword" placeholder="Введите пароль" required autocomplete="current-password">
+      </div>
+      <div id="loginError" class="login-error">Неверное имя пользователя или пароль</div>
+      <button type="submit" class="btn-sm">Войти</button>
+    </form>
+  </div>
+</div>
+
+<!-- Панель администратора -->
+<div id="adminPanel" style="display:none;">
+
+<header class="admin-header">
+  <span class="logo">🛡️</span>
+  <h1>Панель администратора — Кибер-карточки Югры</h1>
+  <span class="back-link" onclick="window.location.href='index.html'">← Вернуться к игре</span>
+</header>
+
+<main class="admin-container">
+
+  <!-- Тулбар -->
+  <div class="admin-toolbar">
+    <button class="btn-sm" onclick="exportJson()">📤 Экспорт JSON</button>
+    <input type="file" id="importFile" accept=".json" style="display:none">
+    <button class="btn-sm secondary" onclick="document.getElementById('importFile').click()">📥 Импорт JSON</button>
+    <button class="btn-sm danger" onclick="resetToDefaults()">🔄 Сбросить к стандартным</button>
+    <button class="btn-sm green" onclick="addCard()">➕ Добавить карточку</button>
+  </div>
+
+  <div class="admin-count" id="cardCount"></div>
+
+  <!-- Таблица карточек -->
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>Иконка</th>
+        <th>Название</th>
+        <th>Тип</th>
+        <th>Действия</th>
+      </tr>
+    </thead>
+    <tbody id="cardsTableBody"></tbody>
+  </table>
+
+  <!-- Управление пользователями -->
+  <div class="admin-section">
+    <h2 style="color:var(--accent);margin-bottom:16px;">👥 Управление администраторами</h2>
+    
+    <div class="admin-toolbar">
+      <button class="btn-sm green" onclick="showAddUserForm()">➕ Добавить администратора</button>
+      <button class="btn-sm" onclick="showChangeCredentialsForm()">🔑 Сменить свои данные</button>
+    </div>
+    
+    <div id="userCount" class="admin-count"></div>
+    
+    <table class="admin-table" id="usersTable">
+      <thead>
+        <tr>
+          <th>Имя пользователя</th>
+          <th>Дата создания</th>
+          <th>Действия</th>
+        </tr>
+      </thead>
+      <tbody id="usersTableBody"></tbody>
+    </table>
+    
+    <!-- Форма добавления пользователя -->
+    <div id="addUserForm" style="display:none;margin-top:16px;padding:16px;background:#f8fafc;border-radius:12px;">
+      <h3 style="margin-bottom:12px;">Добавить нового администратора</h3>
+      <div class="form-row">
+        <div class="field">
+          <label for="newUsername">Имя пользователя</label>
+          <input type="text" id="newUsername" placeholder="Придумайте логин">
+        </div>
+        <div class="field">
+          <label for="newPassword">Пароль</label>
+          <input type="password" id="newPassword" placeholder="Придумайте пароль">
+        </div>
+        <div class="field">
+          <label for="newPasswordConfirm">Подтверждение пароля</label>
+          <input type="password" id="newPasswordConfirm" placeholder="Повторите пароль">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-sm green" onclick="addUser()">Сохранить</button>
+        <button type="button" class="btn-sm secondary" onclick="hideAddUserForm()">Отмена</button>
+      </div>
+    </div>
+    
+    <!-- Форма смены данных -->
+    <div id="changeCredentialsForm" style="display:none;margin-top:16px;padding:16px;background:#f8fafc;border-radius:12px;">
+      <h3 style="margin-bottom:12px;">Сменить свои данные</h3>
+      <div class="form-row">
+        <div class="field">
+          <label for="currentPassword">Текущий пароль</label>
+          <input type="password" id="currentPassword" placeholder="Введите текущий пароль">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label for="newUsernameChange">Новое имя пользователя</label>
+          <input type="text" id="newUsernameChange" placeholder="Оставьте пустым, чтобы не менять">
+        </div>
+        <div class="field">
+          <label for="newPasswordChange">Новый пароль</label>
+          <input type="password" id="newPasswordChange" placeholder="Оставьте пустым, чтобы не менять">
+        </div>
+        <div class="field">
+          <label for="newPasswordChangeConfirm">Подтверждение нового пароля</label>
+          <input type="password" id="newPasswordChangeConfirm" placeholder="Повторите новый пароль">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-sm green" onclick="changeCredentials()">Сохранить</button>
+        <button type="button" class="btn-sm secondary" onclick="hideChangeCredentialsForm()">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Модальное окно формы -->
+<div class="modal-overlay" id="formModal">
+  <div class="modal">
+    <h2 id="modalTitle">Добавить карточку</h2>
+    <form id="cardForm">
+      <!-- Общие поля -->
+      <div class="form-section">
+        <h3>Общие поля</h3>
+        <div class="form-row">
+          <div class="field">
+            <label for="fieldId">ID (уникальный)</label>
+            <input type="text" id="fieldId" placeholder="my_card" required>
+          </div>
+          <div class="field">
+            <label for="fieldIcon">Иконка (эмодзи)</label>
+            <select id="fieldIcon">
+              <option value="📋">📋 Карточка</option>
+              <option value="🎮">🎮 Игра</option>
+              <option value="✉️">✉️ Почта</option>
+              <option value="🔑">🔑 Пароль</option>
+              <option value="🧩">🧩 Головоломка</option>
+              <option value="🗂️">🗂️ Папка</option>
+              <option value="👥">👥 Люди</option>
+              <option value="🚫">🚫 Стоп</option>
+              <option value="🚨">🚨 Тревога</option>
+              <option value="🛡️">🛡️ Щит</option>
+              <option value="🔒">🔒 Замок</option>
+              <option value="🔓">🔓 Открытый</option>
+              <option value="⚠️">⚠️ Внимание</option>
+              <option value="✅">✅ Готово</option>
+              <option value="❌">❌ Ошибка</option>
+              <option value="📱">📱 Телефон</option>
+              <option value="💻">💻 Компьютер</option>
+              <option value="🌐">🌐 Интернет</option>
+              <option value="👤">👤 Человек</option>
+              <option value="📧">📧 Email</option>
+              <option value="🔗">🔗 Ссылка</option>
+              <option value="📞">📞 Телефон</option>
+              <option value="📍">📍 Адрес</option>
+              <option value="👶">👶 Ребёнок</option>
+              <option value="🧑‍🏫">🧑‍🏫 Учитель</option>
+              <option value="👨‍👩‍👦">👨‍👩‍👦 Семья</option>
+              <option value="🏫">🏫 Школа</option>
+              <option value="💬">💬 Чат</option>
+              <option value="📸">📸 Фото</option>
+              <option value="🎁">🎁 Подарок</option>
+              <option value="🕵️">🕵️ Детектив</option>
+              <option value="🏆">🏆 Награда</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="fieldType">Тип задания</label>
+            <select id="fieldType" onchange="switchTypeSection()">
+              <option value="choice">Выбор ответа</option>
+              <option value="tf">Верно / Неверно</option>
+              <option value="match">Сопоставление</option>
+              <option value="sort">Сортировка</option>
+              <option value="order">Порядок действий</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="fieldTag">Метка</label>
+            <input type="text" id="fieldTag" placeholder="Выбор ответа">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="fieldTitle">Название</label>
+            <input type="text" id="fieldTitle" placeholder="Редкий скин за пароль" required>
+          </div>
+        </div>
+      </div>
+
+      <!-- Choice -->
+      <div class="type-section" id="section-choice">
+        <div class="form-section">
+          <h3>Выбор ответа</h3>
+          <div class="form-row">
+            <div class="field">
+              <label for="fieldQ">Вопрос / Ситуация</label>
+              <textarea id="fieldQ"></textarea>
+            </div>
+          </div>
+          <label style="font-size:.85rem;font-weight:bold">Варианты ответа:</label>
+          <div class="dynamic-list" id="optionsList"></div>
+          <button type="button" class="add-item-btn" onclick="addOption()">+ Добавить вариант</button>
+        </div>
+      </div>
+
+      <!-- TF -->
+      <div class="type-section" id="section-tf">
+        <div class="form-section">
+          <h3>Верно / Неверно</h3>
+          <div class="form-row">
+            <div class="field">
+              <label for="fieldStatement">Утверждение</label>
+              <textarea id="fieldStatement"></textarea>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="field">
+              <label>Правильный ответ:</label>
+              <label><input type="radio" name="fieldCorrect" value="true"> Верно</label>
+              <label><input type="radio" name="fieldCorrect" value="false"> Неверно</label>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="field">
+              <label for="fieldWhy">Объяснение (при верном ответе)</label>
+              <textarea id="fieldWhy"></textarea>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="field">
+              <label for="fieldWhyWrong">Объяснение (при неверном ответе)</label>
+              <textarea id="fieldWhyWrong"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Match -->
+      <div class="type-section" id="section-match">
+        <div class="form-section">
+          <h3>Сопоставление</h3>
+          <div class="form-row">
+            <div class="field">
+              <label for="fieldMatchQ">Задание</label>
+              <textarea id="fieldMatchQ"></textarea>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="field">
+              <label for="fieldWhyOk">Объяснение</label>
+              <textarea id="fieldWhyOk"></textarea>
+            </div>
+          </div>
+          <label style="font-size:.85rem;font-weight:bold">Пары (ситуация → реакция):</label>
+          <div class="dynamic-list" id="pairsList"></div>
+          <button type="button" class="add-item-btn" onclick="addPair()">+ Добавить пару</button>
+        </div>
+      </div>
+
+      <!-- Sort -->
+      <div class="type-section" id="section-sort">
+        <div class="form-section">
+          <h3>Сортировка</h3>
+          <div class="form-row">
+            <div class="field">
+              <label for="fieldSortQ">Задание</label>
+              <textarea id="fieldSortQ"></textarea>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="field">
+              <label for="fieldSortWhyOk">Объяснение</label>
+              <textarea id="fieldSortWhyOk"></textarea>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="field">
+              <label for="fieldCat0">Корзина 1 (название)</label>
+              <input type="text" id="fieldCat0" placeholder="Можно рассказывать">
+            </div>
+            <div class="field">
+              <label for="fieldCat1">Корзина 2 (название)</label>
+              <input type="text" id="fieldCat1" placeholder="Держать в секрете">
+            </div>
+          </div>
+          <label style="font-size:.85rem;font-weight:bold">Элементы для сортировки:</label>
+          <div class="dynamic-list" id="sortItemsList"></div>
+          <button type="button" class="add-item-btn" onclick="addSortItem()">+ Добавить элемент</button>
+        </div>
+      </div>
+
+      <!-- Order -->
+      <div class="type-section" id="section-order">
+        <div class="form-section">
+          <h3>Порядок действий</h3>
+          <div class="form-row">
+            <div class="field">
+              <label for="fieldOrderQ">Задание</label>
+              <textarea id="fieldOrderQ"></textarea>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="field">
+              <label for="fieldOrderWhyOk">Объяснение</label>
+              <textarea id="fieldOrderWhyOk"></textarea>
+            </div>
+          </div>
+          <label style="font-size:.85rem;font-weight:bold">Шаги (нажимайте по порядку):</label>
+          <div class="dynamic-list" id="stepsList"></div>
+          <button type="button" class="add-item-btn" onclick="addStep()">+ Добавить шаг</button>
+        </div>
+      </div>
+
+      <!-- Кнопки формы -->
+      <div class="form-actions">
+        <button type="submit" class="btn-sm">💾 Сохранить</button>
+        <button type="button" class="btn-sm secondary" onclick="closeModal()">Отмена</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="admin.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    initAuth();
+    init();
+  });
+</script>
+</body>
+</html>

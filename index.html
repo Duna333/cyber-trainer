@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Кибер-карточки Югры — тренажёр по цифровой безопасности</title>
+<link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+
+<header>
+  <span class="logo">🛡️</span>
+  <h1>Цифровой гражданин Югры
+<p class="subtitle">Кибербезопасность детей · интерактивный тренажёр</p>
+</h1>
+  <div class="a11y">
+    <button class="fsb" data-fs="0">A</button>
+    <button class="fsb" data-fs="1">A+</button>
+    <button class="fsb" data-fs="2">A++</button>
+    <button id="btnContrast">Контраст</button>
+  </div>
+</header>
+
+<main>
+  <div id="scr-welcome" class="screen active">
+    <div class="card">
+      <div class="emoji">🛡️</div>
+      <h2>Кибер-карточки Югры</h2>
+      <p id="greet"></p>
+      <p>Интернет — классное место, но в нём есть ловушки: фишинг, мошенники,
+         чужие пароли и обидчики. Пройди 8 карточек-ситуаций и узнай,
+         насколько ты защищён!</p>
+      <div class="types">
+        <span>Выбор ответа</span><span>Верно / Неверно</span><span>Сопоставление</span>
+        <span>Сортировка</span><span>Порядок действий</span>
+      </div>
+      <div class="field">
+        <label for="inpName">Как тебя зовут?</label>
+        <input id="inpName" placeholder="Имя" maxlength="30">
+      </div>
+      <div class="field">
+        <label for="inpClass">В каком ты классе?</label>
+        <input id="inpClass" type="number" min="1" max="11" placeholder="5">
+      </div>
+      <button class="btn" id="startBtn">Начать 🚀</button>
+      <button class="btn secondary" id="contBtn" style="display:none">Продолжить ▶</button>
+    </div>
+  </div>
+
+  <div id="scr-card" class="screen">
+    <div class="progress-row">
+      <span id="cardNum">Карточка 1 из 8</span>
+      <span id="scoreLine">Правильных ответов: 0</span>
+    </div>
+    <div class="bar"><div class="fill" id="barFill"></div></div>
+    <div class="card" id="cardBox"></div>
+  </div>
+
+  <div id="scr-final" class="screen">
+    <div class="card final-card">
+      <h2>Результат: <span id="finName"></span></h2>
+      <svg class="ring" viewBox="0 0 200 200">
+        <circle cx="100" cy="100" r="80" fill="none" stroke="#e2e8f0" stroke-width="16"/>
+        <circle id="ringFg" cx="100" cy="100" r="80" fill="none" stroke="#1e5aa8"
+          stroke-width="16" stroke-linecap="round" transform="rotate(-90 100 100)"/>
+        <text id="ringTxt" x="100" y="114" text-anchor="middle" font-size="40"
+          font-weight="bold" fill="#1e5aa8">0%</text>
+      </svg>
+      <div class="medal" id="medal"></div>
+      <p id="finMsg" style="font-size:1.1rem"></p>
+      <div class="badges" id="badges"></div>
+      <div class="next-row" style="justify-content:center">
+        <button class="btn" id="certBtn">📄 Скачать сертификат</button>
+        <button class="btn secondary" id="againBtn">🔄 Пройти ещё раз</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<script src="scripts/app.js"></script>
+</body>
+</html>
